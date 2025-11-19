@@ -1,77 +1,92 @@
-// ================================
-//  EXPRESS KEEP-ALIVE SERVER
-// ================================
-const express = require("express");
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.get("/", (req, res) => {
-  res.send("Sigma Bots Running 24/7");
-});
-
-app.listen(PORT, () => {
-  console.log("Keep-alive server running on port " + PORT);
-});
-
-// ================================
-//  MULTI-BOT SYSTEM
-// ================================
 const mineflayer = require("mineflayer");
+const express = require("express");
 
-const BOT_COUNT = 60; // number of bots
-const SERVER_HOST = "play.royallsmp.fun"; // your server ip
-const SERVER_PORT = 25565; // your server port
-const RESOURCE_PACK = true; // force bots to use resource pack
+const app = express();
+app.get("/", (req, res) => res.send("Bots running"));
+app.listen(10000, () => console.log("Express server running"));
 
-console.log(`Starting ${BOT_COUNT} Sigma Bots...`);
+const botNames = [
+"sigmaSigmadude","sigmaboy2","sigmabroX","sigmaShadowBoy","ultraSigmaBoy",
+"sigmaNovaBot","sigmaPrimeBoy","sigmaByteBoy","sigmaVibeBot","sigmaBot900",
+"sigmaCraftBoy","sigmaCoreBot","sigmaStormBoy","sigmaBotX1","sigmaNightBoy",
+"sigmaEchoBot","sigmaFrostBoy","sigmaSparkBot","sigmaVoidBoy","sigmaTurboBot",
+"sigmaBladeBoy","sigmaGlitchBot","sigmaHunterBoy","sigmaPixelBot","sigmaRogueBoy",
+"sigmaboyX","sigmaboyPro","sigmaboyPlus","sigmaboy999","sigmaboyAlpha",
+"sigmaboyOmega","sigmaboyStrike","sigmaboyBlitz","sigmaboyFlash","sigmaboyOrbit",
+"sigmaboyPulse","sigmaboyCraft","sigmaboyKnight","sigmaboyWing","sigmaboyNova",
+"sigmaboyStorm","sigmaboyByte","sigmaboyShadow","sigmaboyVortex","sigmaboyEcho",
+"sigmaboyFrost","sigmaboyBolt","sigmaboyNexus","sigmaboyUltra","sigmaboyTurbo",
+"sigmaboyZero","sigmaboyPrime","sigmaboyCrafted","sigmaboyGlow","sigmaboySpectre",
+"sigmaboyCyber","sigmaboyMatrix","sigmaboyStealth","sigmaboyRift","sigmaboyGuardian"
+];
 
-function createBot(i) {
+const SERVER_IP = "play.royallsmp.fun";
+const SERVER_PORT = 25565;
+
+let index = 0;
+
+function createNextBot() {
+  if (index >= botNames.length) return;
+
+  const name = botNames[index];
+  console.log(`Starting bot ${index + 1}: ${name}`);
+
   const bot = mineflayer.createBot({
-    host: SERVER_HOST,
+    host: SERVER_IP,
     port: SERVER_PORT,
-    username: `SigmaBot_${i}`,
-    skipValidation: true,
-    hideErrors: false,
-    auth: "offline", // cracked server
-    disableChatSigning: true,
-    enableCaveBot: false,
-    enableMovement: true,
-    checkTimeoutInterval: 10 * 1000,
-    acceptResourcePacks: "always" // IMPORTANT
+    username: name,
+    version: false,
+    auth: "offline", // cracked
+    // Force resource pack auto-download
+    hideErrors: true
   });
 
-  // --- auto rejoin on kick ---
+  bot.on("resourcePack", (url, hash) => {
+    bot.acceptResourcePack();
+  });
+
+  bot.once("spawn", () => {
+    console.log(`${name} joined!`);
+
+    bot.chat(`/register ${name} ${name}`);
+
+    setTimeout(() => {
+      bot.chat(`/login ${name}`);
+    }, 5000);
+
+    // Chat every 2 min
+    setInterval(() => {
+      bot.chat("gu gu ga ga");
+    }, 120000);
+
+    // Simple movement every 5 min
+    setInterval(() => {
+      bot.setControlState('forward', true);
+      setTimeout(() => {
+        bot.setControlState('forward', false);
+        bot.setControlState('jump', true);
+        setTimeout(() => {
+          bot.setControlState('jump', false);
+          bot.setControlState('back', true);
+          setTimeout(() => bot.setControlState('back', false), 5000);
+        }, 500);
+      }, 5000);
+    }, 300000);
+  });
+
   bot.on("kicked", (reason) => {
-    console.log(`Bot ${i} kicked:`, reason);
-    setTimeout(() => createBot(i), 5000);
+    console.log(`${name} kicked: ${reason}`);
   });
 
   bot.on("error", (err) => {
-    console.log(`Bot ${i} error:`, err);
+    console.log(`${name} error: ${err}`);
   });
 
-  // --- when bot spawns ---
-  bot.once("spawn", () => {
-    console.log(`Bot ${i} joined the server.`);
+  index++;
 
-    // SIMPLE AFK WALK (no pathfinder)
-    setInterval(() => {
-      bot.setControlState("forward", true);
-      setTimeout(() => bot.setControlState("forward", false), 1000);
-    }, 6000);
-
-    // OPTIONAL: look around randomly
-    setInterval(() => {
-      const yaw = Math.random() * Math.PI * 2;
-      const pitch = (Math.random() - 0.5) * 0.5;
-      bot.look(yaw, pitch, true);
-    }, 4000);
-  });
-
-  return bot;
+  // ⏳ delay next bot login by 3 seconds
+  setTimeout(createNextBot, 3000);
 }
 
-// Start bots
-for (let i = 1; i <= BOT_COUNT; i++) {
-  createBot(i);
-}
+console.log("Starting bots with delay...");
+createNextBot();
