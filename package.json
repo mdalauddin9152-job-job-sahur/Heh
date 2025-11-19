@@ -1,7 +1,7 @@
 {
   "name": "sigma-multibots",
   "version": "1.0.0",
-  "description": "60 Minecraft AFK bots",
+  "description": "60 Minecraft AFK Bots",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -10,9 +10,8 @@
     "node": "18.x"
   },
   "dependencies": {
-    "express": "^4.19.2",
+    "express": "^4.18.2",
     "mineflayer": "^4.0.0",
-    "mineflayer-pathfinder": "^1.5.0",
     "vec3": "^0.1.7"
   }
 }
