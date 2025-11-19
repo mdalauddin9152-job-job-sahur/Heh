@@ -1,116 +1,77 @@
-// ======================
-// EXPRESS KEEP-ALIVE
-// ======================
+// ================================
+//  EXPRESS KEEP-ALIVE SERVER
+// ================================
 const express = require("express");
 const app = express();
+const PORT = process.env.PORT || 3000;
 
 app.get("/", (req, res) => {
-  res.send("Sigma Bots are running 24/7");
+  res.send("Sigma Bots Running 24/7");
 });
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Express alive on port", PORT);
+  console.log("Keep-alive server running on port " + PORT);
 });
 
-// ======================
-// MINEFLAYER BOTS
-// ======================
+// ================================
+//  MULTI-BOT SYSTEM
+// ================================
 const mineflayer = require("mineflayer");
-const { pathfinder, Movements, goals } = require("mineflayer-pathfinder");
-const mcDataLoader = require("minecraft-data");
 
-const botNames = [
-  "sigmasigmadude","sigmaboy2","sigmabroX","sigmaShadowBoy","ultraSigmaBoy",
-  "sigmaNovaBot","sigmaPrimeBoy","sigmaByteBoy","sigmaVibeBot","sigmaBot900",
-  "sigmaCraftBoy","sigmaCoreBot","sigmaStormBoy","sigmaBotX1","sigmaNightBoy",
-  "sigmaEchoBot","sigmaFrostBoy","sigmaSparkBot","sigmaVoidBoy","sigmaTurboBot",
-  "sigmaBladeBoy","sigmaGlitchBot","sigmaHunterBoy","sigmaPixelBot","sigmaRogueBoy",
-  "sigmaboyX","sigmaboyPro","sigmaboyPlus","sigmaboy999","sigmaboyAlpha",
-  "sigmaboyOmega","sigmaboyStrike","sigmaboyBlitz","sigmaboyFlash","sigmaboyOrbit",
-  "sigmaboyPulse","sigmaboyCraft","sigmaboyKnight","sigmaboyWing","sigmaboyNova",
-  "sigmaboyStorm","sigmaboyByte","sigmaboyShadow","sigmaboyVortex","sigmaboyEcho",
-  "sigmaboyFrost","sigmaboyBolt","sigmaboyNexus","sigmaboyUltra","sigmaboyTurbo",
-  "sigmaboyZero","sigmaboyPrime","sigmaboyCrafted","sigmaboyGlow",
-  "sigmaboySpectre","sigmaboyCyber","sigmaboyMatrix","sigmaboyStealth",
-  "sigmaboyRift","sigmaboyGuardian"
-];
+const BOT_COUNT = 60; // number of bots
+const SERVER_HOST = "play.royallsmp.fun"; // your server ip
+const SERVER_PORT = 25565; // your server port
+const RESOURCE_PACK = true; // force bots to use resource pack
 
-const SERVER_IP = "play.royallsmp.fun";
-const SERVER_PORT = 25565;
+console.log(`Starting ${BOT_COUNT} Sigma Bots...`);
 
-function createSigmaBot(name) {
+function createBot(i) {
   const bot = mineflayer.createBot({
-    host: SERVER_IP,
+    host: SERVER_HOST,
     port: SERVER_PORT,
-    username: name,
-    viewDistance: "tiny"
+    username: `SigmaBot_${i}`,
+    skipValidation: true,
+    hideErrors: false,
+    auth: "offline", // cracked server
+    disableChatSigning: true,
+    enableCaveBot: false,
+    enableMovement: true,
+    checkTimeoutInterval: 10 * 1000,
+    acceptResourcePacks: "always" // IMPORTANT
   });
 
-  bot.loadPlugin(pathfinder);
-
-  bot.on("resourcePack", () => {
-    console.log(`${name}: Accepting resource pack`);
-    bot.acceptResourcePack();
+  // --- auto rejoin on kick ---
+  bot.on("kicked", (reason) => {
+    console.log(`Bot ${i} kicked:`, reason);
+    setTimeout(() => createBot(i), 5000);
   });
 
-  bot.on("spawn", () => {
-    console.log(`${name}: joined`);
+  bot.on("error", (err) => {
+    console.log(`Bot ${i} error:`, err);
+  });
 
-    const mcData = mcDataLoader(bot.version);
-    const moves = new Movements(bot, mcData);
-    bot.pathfinder.setMovements(moves);
+  // --- when bot spawns ---
+  bot.once("spawn", () => {
+    console.log(`Bot ${i} joined the server.`);
 
-    // /register
-    setTimeout(() => {
-      bot.chat(`/register ${name} ${name}`);
-      console.log(`${name}: /register sent`);
-    }, 2000);
-
-    // /login
-    setTimeout(() => {
-      bot.chat(`/login ${name}`);
-      console.log(`${name}: /login sent`);
-    }, 7000);
-
-    // Chat every 2 minutes
+    // SIMPLE AFK WALK (no pathfinder)
     setInterval(() => {
-      bot.chat("gu gu ga ga");
-    }, 120000);
+      bot.setControlState("forward", true);
+      setTimeout(() => bot.setControlState("forward", false), 1000);
+    }, 6000);
 
-    // Movement
-    async function movement() {
-      try {
-        const start = bot.entity.position.clone();
-        const yaw = bot.entity.yaw;
-        const dx = -Math.sin(yaw);
-        const dz = Math.cos(yaw);
-        const forward = start.offset(dx * 5, 0, dz * 5);
-
-        await bot.pathfinder.goto(new goals.GoalNear(forward.x, forward.y, forward.z, 1));
-        bot.setControlState("jump", true);
-        setTimeout(() => bot.setControlState("jump", false), 400);
-
-        await bot.pathfinder.goto(new goals.GoalNear(start.x, start.y, start.z, 1));
-      } catch {}
-    }
-
-    setTimeout(() => {
-      movement();
-      setInterval(movement, 300000);
-    }, 10000);
+    // OPTIONAL: look around randomly
+    setInterval(() => {
+      const yaw = Math.random() * Math.PI * 2;
+      const pitch = (Math.random() - 0.5) * 0.5;
+      bot.look(yaw, pitch, true);
+    }, 4000);
   });
 
-  bot.on("end", () => {
-    console.log(`${name}: Disconnected, retrying...`);
-    setTimeout(() => createSigmaBot(name), 5000);
-  });
-
-  bot.on("kicked", (reason) => console.log(`${name}: kicked →`, reason));
-  bot.on("error", () => {});
+  return bot;
 }
 
-console.log("Launching 60 Sigma bots...");
-botNames.forEach((name, i) => {
-  setTimeout(() => createSigmaBot(name), i * 500);
-});
+// Start bots
+for (let i = 1; i <= BOT_COUNT; i++) {
+  createBot(i);
+}
